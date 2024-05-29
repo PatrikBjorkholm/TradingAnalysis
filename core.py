@@ -1,7 +1,18 @@
+import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.subplots as make_subplots
+from datetime import datetime
+import numpy
+def PointPos(x):
+    if(x['pivot'] == 1):
+        return x['low']-1e-3
+    elif(x['pivot'] == 2):
+        return x['high']+1e-3
+    else:
+        return np.nan
 
 # looking for candlestick formations
-
 def PivotID(df1,l,n1,n2):
     if(l-n1<0 or l+n2>0):
         return 0
@@ -36,3 +47,21 @@ df.reset_index(drop=True,inplace=True)
 df.isna().sum()
 # Look for pivot points
 df['pivot'] = df.apply(lambda x: PivotID(df,x.name,10,10),axis=1)
+df['pointpos'] = df.apply(lambda row: PointPos(row), axis=1)
+
+print(df.head())
+
+# Print Figure
+
+dfpl = df[-300:-1]
+fig = go.Figure(data=[go.Candlestick(x=dfpl.index,open=dfpl['open'],high=dfpl['high'],
+                                     low=dfpl['low'],close=dfpl['close'],increasing_line_color='green',
+                                     decreasing_line_color='red')])
+
+fig.add_scatter(x=dfpl.index, y =dfpl['pointpos'], mode="markers", marker=dict(size=5,color="MediumPurple"),name="pivot")
+fig.update_layout(xaxis_rangeslider_visible=False)
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(showgrid=False)
+fig.update_layout(paper_bgcolor='black',plot_bgcolor='black')
+
+fig.show()
