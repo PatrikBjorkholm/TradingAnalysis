@@ -4,34 +4,9 @@ import plotly.graph_objects as go
 import plotly.subplots as make_subplots
 from datetime import datetime
 import numpy as np
-def PointPos(x):
-    if x['pivot'] == 1:
-        return (x['low']-1e-3)
-    elif x['pivot'] == 2:
-        return (x['high']+1e-3)
-    else:
-        return np.nan
+import matplotlib.pyplot as plt
+from AlgoTrading.PivotCode import PivotPointDetector as PPD
 
-# looking for candlestick formations
-def pivotid(df1, l, n1, n2):  # n1 n2 before and after candle l
-    if l - n1 < 0 or l + n2 >= len(df1):
-        return 0
-
-    pividlow = 1
-    pividhigh = 1
-    for i in range(l - n1, l + n2 + 1):
-        if (df1.low[l] > df1.low[i]):
-            pividlow = 0
-        if (df1.high[l] < df1.high[i]):
-            pividhigh = 0
-    if pividlow and pividhigh:
-        return 3
-    elif pividlow:
-        return 1
-    elif pividhigh:
-        return 2
-    else:
-        return 0
 
 # Read and clean out data ans null values
 df = pd.read_csv('./Data/EURUSD_Candlestick_1_Hour_BID_04.05.2003-15.04.2023_2.csv', sep=',')
@@ -45,19 +20,11 @@ df.isna().sum()
 print(df.head(10))
 
 # Look for pivot points
-df['pivot'] = df.apply(lambda x: pivotid(df, x.name,10,10), axis=1)
+df['pivot'] = df.apply(lambda x: PPD.pivotid(df, x.name,10,10), axis=1)
 
 print(df.head(10))
 print(df.head(-10))
-df['pointpos'] = df.apply(lambda row: PointPos(row), axis=1)
-
-
-
-
-#print(df.head())
-
-#print(df.dtypes)
-# Print Figure
+df['pointpos'] = df.apply(lambda row: PPD.PointPos(row), axis=1)
 
 dfpl = df[-300:-1]
 
@@ -71,5 +38,33 @@ fig.update_xaxes(showgrid=False)
 fig.update_yaxes(showgrid=False)
 fig.update_layout(paper_bgcolor='black',plot_bgcolor='black')
 
-fig.show()
+#fig.show()
 
+# Find resistance levels
+
+dfkeys = df[:]
+
+# Filter the dataframe based on the pivot column
+high_values = dfkeys[dfkeys['pivot'] == 2]['high']
+low_values = dfkeys[dfkeys['pivot'] == 1]['low']
+
+# Define the bin width
+bin_width = 0.003  # Change this value as needed
+
+# Calculate the number of bins
+bins = int((high_values.max() - low_values.min()) / bin_width)
+
+print((high_values))
+
+
+# Create the histograms
+plt.figure(figsize=(10, 5))
+plt.hist(high_values, bins=bins, alpha=0.5, label='High Values', color='red')
+plt.hist(low_values, bins=bins, alpha=0.5, label='Low Values', color='blue')
+
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+plt.title('Histogram of High and Low Values')
+plt.legend()
+
+#plt.show()
